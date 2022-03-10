@@ -87,6 +87,7 @@ def create_protocol(listener):
                 yield stream.receive_message()
         finally:
             listener.on_disconnect(stream)
+
             LOG_NOTE(
                 "{origin} ([{host}]:{port}) disconnected.".format(
                     origin=origin, host=host, port=port
@@ -96,24 +97,31 @@ def create_protocol(listener):
     return protocol
 
 
-def create_server():
-    listener = Listener()
-    protocol = create_protocol(listener)
-    server = Server(protocol, PORT)
+class MapRotationServer(object):
+    def __init__(self):
+        self._listener = Listener()
+        protocol = create_protocol(self._listener)
+        self._server = Server(protocol, PORT)
 
     @auto_run
     @async_task
-    def serve():
-        g_playerEvents.onAvatarBecomePlayer += listener.on_arena_load
+    def serve(self):
+        LOG_NOTE("Listening on port {}".format(PORT))
+        g_playerEvents.onAvatarBecomePlayer += self._listener.on_arena_load
+
         try:
-            with server:
+            with self._server as server:
                 while not server.closed:
                     server.poll()
                     yield delay(0)
         except CallbackCancelled:
             pass
         finally:
-            g_playerEvents.onAvatarBecomePlayer -= listener.on_arena_load
+            g_playerEvents.onAvatarBecomePlayer -= self._listener.on_arena_load
+            LOG_NOTE("Stopped server")
 
-    serve()
-    return server
+    def close(self):
+        self._server.close()
+
+
+g_map_rotation_server = MapRotationServer()
