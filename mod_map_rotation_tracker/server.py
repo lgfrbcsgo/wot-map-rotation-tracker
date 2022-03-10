@@ -55,8 +55,7 @@ class Listener(object):
         data = {
             "server": connection_manager.serverUserNameShort,
             "tier": list(tier),
-            "map": arena.arenaType.geometryName,
-            "mode": arena.arenaType.gameplayName,
+            "arenaType": arena.arenaType.id,
         }
 
         message = json.dumps(data)
