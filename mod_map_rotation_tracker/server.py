@@ -6,8 +6,7 @@ import BigWorld
 from constants import ARENA_BONUS_TYPE
 from debug_utils import LOG_NOTE
 from helpers import dependency
-from mod_async import CallbackCancelled, async_task, auto_run, delay, run
-from mod_async.bw import await_event
+from mod_async import CallbackCancelled, async_task, auto_run, await_event, delay, run
 from mod_async_server import Server
 from mod_websocket_server import MessageStream, websocket_protocol
 from PlayerEvents import g_playerEvents
