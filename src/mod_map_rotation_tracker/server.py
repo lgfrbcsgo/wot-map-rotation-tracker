@@ -46,15 +46,17 @@ class Listener(object):
 
         yield await_event(arena.onNewVehicleListReceived)
 
-        tier = {
+        tiers = {
             vehicle_info["vehicleType"].level
             for vehicle_info in arena.vehicles.values()
         }
 
         data = {
             "server": connection_manager.serverUserNameShort,
-            "tier": list(tier),
-            "arenaType": arena.arenaType.id,
+            "map": arena.arenaType.geometryName,
+            "mode": arena.arenaType.gameplayName,
+            "bottomTier": min(tiers),
+            "topTier": max(tiers),
         }
 
         message = json.dumps(data)
