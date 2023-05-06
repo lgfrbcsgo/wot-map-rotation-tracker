@@ -11,11 +11,6 @@ AUTHOR = "lgfrbcsgo"
 NAME = "Map Rotation Tracker"
 DESCRIPTION = "This mod enables the map rotation tracker website to gather data about your recently played maps."
 
-SOURCES = [
-    "gui",
-    "mod_map_rotation_tracker",
-]
-
 RELEASE_DEPENDENCIES = [
     "https://github.com/lgfrbcsgo/wot-async/releases/download/v0.2.1/lgfrbcsgo.async_0.2.1.wotmod",
     "https://github.com/lgfrbcsgo/wot-async-server/releases/download/v0.3.1/lgfrbcsgo.async-server_0.3.1.wotmod",
@@ -29,7 +24,7 @@ def clean():
     subprocess.check_call(["rm", "-rf", "dist"])
 
 
-@task()
+@task(clean)
 def wotmod():
     # clean dist directory
     subprocess.check_call(["rm", "-rf", "dist/wotmod"])
@@ -40,8 +35,7 @@ def wotmod():
     subprocess.check_call(["mkdir", "-p", source_dst])
 
     # copy sources
-    for source in SOURCES:
-        subprocess.check_call(["cp", "-r", source, source_dst])
+    subprocess.check_call(["cp", "-r", "src/.", source_dst])
 
     # compile sources
     subprocess.check_call(["python2.7", "-m", "compileall", source_dst])
