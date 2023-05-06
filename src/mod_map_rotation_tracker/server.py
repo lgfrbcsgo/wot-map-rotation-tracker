@@ -1,12 +1,12 @@
 import json
 import re
-from typing import List
+from typing import Optional
 
 import BigWorld
 from constants import ARENA_BONUS_TYPE
 from debug_utils import LOG_NOTE
 from helpers import dependency
-from mod_async import CallbackCancelled, async_task, auto_run, await_event, delay, run
+from mod_async import CallbackCancelled, async_task, await_event, delay
 from mod_async_server import Server
 from mod_websocket_server import MessageStream, websocket_protocol
 from PlayerEvents import g_playerEvents
@@ -26,17 +26,23 @@ connection_manager = dependency.instance(IConnectionManager)
 
 class Listener(object):
     def __init__(self):
-        self._streams = []  # type: List[MessageStream]
+        self._stream = None  # type: Optional[MessageStream]
 
+    @async_task
     def on_connect(self, stream):
         # type: (MessageStream) -> ...
-        self._streams.append(stream)
+        if self._stream:
+            self._stream.close()
+
+        self._stream = stream
+
+        message = json.dumps({"version": "1.0.0"})
+        yield stream.send_message(message)
 
     def on_disconnect(self, stream):
         # type: (MessageStream) -> ...
-        self._streams.remove(stream)
+        self._stream = None
 
-    @auto_run
     @async_task
     def on_arena_load(self):
         arena = BigWorld.player().arena
@@ -60,8 +66,7 @@ class Listener(object):
         }
 
         message = json.dumps(data)
-        for stream in self._streams:
-            run(stream.send_message(message))
+        yield self._stream.send_message(message)
 
 
 def create_protocol(listener):
@@ -103,7 +108,6 @@ class MapRotationServer(object):
         protocol = create_protocol(self._listener)
         self._server = Server(protocol, PORT)
 
-    @auto_run
     @async_task
     def serve(self):
         LOG_NOTE("Listening on port {}".format(PORT))
