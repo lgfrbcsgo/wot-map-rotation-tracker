@@ -4,7 +4,7 @@ from typing import Optional
 
 import BigWorld
 from constants import ARENA_BONUS_TYPE
-from debug_utils import LOG_NOTE, LOG_WARNING, LOG_CURRENT_EXCEPTION
+from debug_utils import LOG_NOTE
 from helpers import dependency
 from mod_async import CallbackCancelled, async_task, await_event, delay
 from mod_async_server import Server
@@ -34,14 +34,9 @@ class Listener(object):
         message = json.dumps({"version": "1.0.0"})
         yield stream.send_message(message)
 
-        if self._stream:
-            try:
-                yield self._stream.close()
-            except Exception:
-                LOG_WARNING("Error closing stream.")
-                LOG_CURRENT_EXCEPTION()
-
-        self._stream = stream
+        previous, self._stream = self._stream, stream
+        if previous:
+            yield previous.close()
 
     def on_disconnect(self, stream):
         # type: (MessageStream) -> ...
