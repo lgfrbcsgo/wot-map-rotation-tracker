@@ -13,8 +13,8 @@ DESCRIPTION = "This mod enables the map rotation tracker website to gather data 
 
 RELEASE_DEPENDENCIES = [
     "https://github.com/lgfrbcsgo/wot-async/releases/download/v0.3.2/lgfrbcsgo.async_0.3.2.wotmod",
-    "https://github.com/lgfrbcsgo/wot-async-server/releases/download/v0.4.0/lgfrbcsgo.async-server_0.4.0.wotmod",
-    "https://github.com/lgfrbcsgo/wot-websocket-server/releases/download/v0.4.0/lgfrbcsgo.websocket-server_0.4.0.wotmod",
+    "https://github.com/lgfrbcsgo/wot-async-server/releases/download/v0.4.1/lgfrbcsgo.async-server_0.4.1.wotmod",
+    "https://github.com/lgfrbcsgo/wot-websocket-server/releases/download/v0.4.1/lgfrbcsgo.websocket-server_0.4.1.wotmod",
 ]
 
 

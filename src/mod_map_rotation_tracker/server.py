@@ -4,7 +4,7 @@ from typing import Optional
 
 import BigWorld
 from constants import ARENA_BONUS_TYPE
-from debug_utils import LOG_NOTE
+from debug_utils import LOG_NOTE, LOG_WARNING, LOG_CURRENT_EXCEPTION
 from helpers import dependency
 from mod_async import CallbackCancelled, async_task, await_event, delay
 from mod_async_server import Server
@@ -31,13 +31,17 @@ class Listener(object):
     @async_task
     def on_connect(self, stream):
         # type: (MessageStream) -> ...
-        if self._stream:
-            self._stream.close()
-
-        self._stream = stream
-
         message = json.dumps({"version": "1.0.0"})
         yield stream.send_message(message)
+
+        if self._stream:
+            try:
+                yield self._stream.close()
+            except Exception:
+                LOG_WARNING("Error closing stream.")
+                LOG_CURRENT_EXCEPTION()
+
+        self._stream = stream
 
     def on_disconnect(self, stream):
         # type: (MessageStream) -> ...
@@ -76,28 +80,10 @@ def create_protocol(listener):
     @async_task
     def protocol(server, stream):
         # type: (Server, MessageStream) -> ...
-        host, port = stream.peer_addr
-        origin = stream.handshake_headers["origin"]
-        LOG_NOTE(
-            "{origin} ([{host}]:{port}) connected.".format(
-                origin=origin, host=host, port=port
-            )
-        )
-
-        listener.on_connect(stream)
-
-        try:
-            while True:
-                # ignore all messages
-                yield stream.receive_message()
-        finally:
-            listener.on_disconnect(stream)
-
-            LOG_NOTE(
-                "{origin} ([{host}]:{port}) disconnected.".format(
-                    origin=origin, host=host, port=port
-                )
-            )
+        yield listener.on_connect(stream)
+        while True:
+            # ignore all messages
+            yield stream.receive_message()
 
     return protocol
 
