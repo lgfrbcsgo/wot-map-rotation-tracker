@@ -40,7 +40,8 @@ class Listener(object):
 
     def on_disconnect(self, stream):
         # type: (MessageStream) -> ...
-        self._stream = None
+        if stream == self._stream:
+            self._stream = None
 
     @async_task
     def on_arena_load(self):
@@ -75,10 +76,13 @@ def create_protocol(listener):
     @async_task
     def protocol(server, stream):
         # type: (Server, MessageStream) -> ...
-        yield listener.on_connect(stream)
-        while True:
-            # ignore all messages
-            yield stream.receive_message()
+        try:
+            yield listener.on_connect(stream)
+            while True:
+                # ignore all messages
+                yield stream.receive_message()
+        finally:
+            listener.on_disconnect(stream)
 
     return protocol
 
