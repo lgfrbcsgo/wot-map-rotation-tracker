@@ -12,7 +12,7 @@ NAME = "Map Rotation Tracker"
 DESCRIPTION = "This mod enables the map rotation tracker website to gather data about your recently played maps."
 
 RELEASE_DEPENDENCIES = [
-    "https://github.com/lgfrbcsgo/wot-toolkit/releases/download/v0.1.0/lgfrbcsgo.toolkit_0.1.0.wotmod",
+    "https://github.com/lgfrbcsgo/wot-toolkit/releases/download/v0.1.1/lgfrbcsgo.toolkit_0.1.1.wotmod",
 ]
 
 
