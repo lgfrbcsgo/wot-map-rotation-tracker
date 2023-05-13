@@ -65,8 +65,9 @@ class Listener(object):
             "topTier": max(tiers),
         }
 
-        message = json.dumps(data)
-        yield self._stream.send_message(message)
+        if self._stream is not None:
+            message = json.dumps(data)
+            yield self._stream.send_message(message)
 
 
 def create_protocol(listener):
