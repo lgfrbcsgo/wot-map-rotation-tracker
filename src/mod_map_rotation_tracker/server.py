@@ -17,7 +17,6 @@ PORT = 15457
 ORIGIN_WHITELIST = [
     re.compile("^https?://localhost(:[0-9]{1,5})?$"),
     "https://lgfrbcsgo.github.io",
-    "https://livepersoninc.github.io",
 ]
 
 
@@ -31,12 +30,12 @@ class Listener(object):
     @async_task
     def on_connect(self, stream):
         # type: (MessageStream) -> ...
-        message = json.dumps({"version": "1.0.0"})
+        message = json.dumps({"type": "ProtocolVersion", "major": 1, "minor": 0})
         yield stream.send_message(message)
 
         previous, self._stream = self._stream, stream
         if previous:
-            yield previous.close()
+            yield previous.close(code=4000, reason="ConnectionSuperseded")
 
     def on_disconnect(self, stream):
         # type: (MessageStream) -> ...
@@ -58,11 +57,12 @@ class Listener(object):
         }
 
         data = {
+            "type": "PlayedMap",
             "server": connection_manager.serverUserNameShort,
             "map": arena.arenaType.geometryName,
             "mode": arena.arenaType.gameplayName,
-            "bottomTier": min(tiers),
-            "topTier": max(tiers),
+            "bottom_tier": min(tiers),
+            "top_tier": max(tiers),
         }
 
         if self._stream is not None:
