@@ -30,9 +30,6 @@ class Listener(object):
     @async_task
     def on_connect(self, stream):
         # type: (MessageStream) -> ...
-        message = json.dumps({"type": "ProtocolVersion", "major": 1, "minor": 0})
-        yield stream.send_message(message)
-
         previous, self._stream = self._stream, stream
         if previous:
             yield previous.close(code=4000, reason="ConnectionSuperseded")
