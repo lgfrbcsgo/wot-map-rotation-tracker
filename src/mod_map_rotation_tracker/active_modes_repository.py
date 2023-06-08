@@ -1,11 +1,15 @@
 from Event import Event
-from constants import ARENA_GAMEPLAY_IDS
+from account_helpers.settings_core.settings_constants import GAME
+from constants import ARENA_GAMEPLAY_NAMES
 from helpers import dependency
 from mod_map_rotation_tracker.util import safe_callback
-from skeletons.account_helpers.settings_core import ISettingsCore
+from skeletons.account_helpers.settings_core import ISettingsCache, ISettingsCore
+
+CTF, DOMINATION, ASSAULT = ARENA_GAMEPLAY_NAMES[:3]
 
 
 class ActiveModesRepository(object):
+    settings_cache = dependency.descriptor(ISettingsCache)
     settings_core = dependency.descriptor(ISettingsCore)
 
     def __init__(self):
@@ -13,21 +17,18 @@ class ActiveModesRepository(object):
         self.on_active_modes = Event()
 
     def start(self):
-        self.settings_core.onSettingsChanged += self._on_settings_changed
+        self.settings_cache.onSyncCompleted += self._on_sync_completed
 
     def stop(self):
-        self.settings_core.onSettingsChanged -= self._on_settings_changed
+        self.settings_cache.onSyncCompleted -= self._on_sync_completed
 
     @safe_callback
-    def _on_settings_changed(self, diff):
-        gameplay_mask_update = diff.get("gameplayMask")
-        if gameplay_mask_update is None:
-            return
+    def _on_sync_completed(self):
+        modes = {
+            CTF: self.settings_core.getSetting(GAME.GAMEPLAY_CTF),
+            DOMINATION: self.settings_core.getSetting(GAME.GAMEPLAY_DOMINATION),
+            ASSAULT: self.settings_core.getSetting(GAME.GAMEPLAY_ASSAULT),
+        }
 
-        self.active_modes = [
-            mode
-            for mode, gameplay_id in ARENA_GAMEPLAY_IDS.items()
-            if (gameplay_mask_update & 1 << gameplay_id) != 0
-        ]
-
+        self.active_modes = [mode for mode, active in modes.items() if active]
         self.on_active_modes(self.active_modes)
