@@ -12,7 +12,7 @@ from mod_websocket_server import MessageStream, websocket_protocol
 
 PORT = 15457
 
-ORIGIN_WHITELIST = [
+ALLOWED_ORIGINS = [
     re.compile("^https?://localhost(:[0-9]{1,5})?$"),
     "https://lgfrbcsgo.github.io",
 ]
@@ -86,7 +86,7 @@ class MapRotationServer(object):
     def __init__(self):
         self._protocol = Protocol()
 
-        @websocket_protocol(allowed_origins=ORIGIN_WHITELIST)
+        @websocket_protocol(allowed_origins=ALLOWED_ORIGINS)
         @async_task
         def protocol(_server, stream):
             yield self._protocol.on_connect(stream)
