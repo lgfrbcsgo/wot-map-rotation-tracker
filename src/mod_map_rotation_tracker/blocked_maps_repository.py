@@ -2,7 +2,7 @@ from ArenaType import g_geometryCache
 from Event import Event
 from PlayerEvents import g_playerEvents
 from helpers import dependency
-from mod_map_rotation_tracker.util import safe_callback
+from mod_hooking import safe_callback
 from skeletons.gui.lobby_context import ILobbyContext
 
 

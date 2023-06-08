@@ -5,7 +5,7 @@ from PlayerEvents import g_playerEvents
 from constants import ARENA_BONUS_TYPE
 from helpers import dependency
 from mod_async import async_task, await_event
-from mod_map_rotation_tracker.util import safe_callback
+from mod_hooking import safe_callback
 from skeletons.connection_mgr import IConnectionManager
 
 

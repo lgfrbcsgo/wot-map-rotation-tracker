@@ -2,7 +2,7 @@ from Event import Event
 from account_helpers.settings_core.settings_constants import GAME
 from constants import ARENA_GAMEPLAY_NAMES
 from helpers import dependency
-from mod_map_rotation_tracker.util import safe_callback
+from mod_hooking import safe_callback
 from skeletons.account_helpers.settings_core import ISettingsCache, ISettingsCore
 
 CTF, DOMINATION, ASSAULT = ARENA_GAMEPLAY_NAMES[:3]
