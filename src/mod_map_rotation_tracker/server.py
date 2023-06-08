@@ -73,7 +73,7 @@ class Protocol(object):
 
     @async_task
     def _send_active_modes(self, active_modes):
-        message = {"type": "ActiveModes", "modes": active_modes}
+        message = {"type": "ActiveModes", "modes": list(active_modes)}
         yield self._send_message(message)
 
     @async_task

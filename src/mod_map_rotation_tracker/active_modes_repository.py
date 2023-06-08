@@ -30,5 +30,8 @@ class ActiveModesRepository(object):
             ASSAULT: self.settings_core.getSetting(GAME.GAMEPLAY_ASSAULT),
         }
 
-        self.active_modes = [mode for mode, active in modes.items() if active]
-        self.on_active_modes(self.active_modes)
+        active_modes = {mode for mode, active in modes.items() if active}
+
+        if active_modes != self.active_modes:
+            self.active_modes = active_modes
+            self.on_active_modes(self.active_modes)
