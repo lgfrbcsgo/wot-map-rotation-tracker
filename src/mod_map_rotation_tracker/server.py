@@ -1,19 +1,14 @@
 import json
 import re
-from typing import Optional, List
+from typing import Optional
 
-import BigWorld
-
-from ArenaType import g_geometryCache
-from PlayerEvents import g_playerEvents
-from constants import ARENA_BONUS_TYPE
 from debug_utils import LOG_NOTE
-from helpers import dependency
-from mod_async import CallbackCancelled, async_task, await_event, delay
+from mod_async import CallbackCancelled, async_task, delay
 from mod_async_server import Server
+from mod_map_rotation_tracker.active_modes_repository import ActiveModesRepository
+from mod_map_rotation_tracker.blocked_maps_repository import BlockedMapsRepository
+from mod_map_rotation_tracker.played_maps_listener import PlayedMapsListener
 from mod_websocket_server import MessageStream, websocket_protocol
-from skeletons.connection_mgr import IConnectionManager
-from skeletons.gui.lobby_context import ILobbyContext
 
 PORT = 15457
 
@@ -22,115 +17,86 @@ ORIGIN_WHITELIST = [
     "https://lgfrbcsgo.github.io",
 ]
 
-class Listener(object):
+class Protocol(object):
     def __init__(self):
         self._stream = None  # type: Optional[MessageStream]
-        self._blocked_maps = None # type: Optional[List]
+
+        self._played_maps_listener = PlayedMapsListener()
+        self._played_maps_listener.on_played_map += self._send_played_map
+
+        self._blocked_maps_repository = BlockedMapsRepository()
+        self._blocked_maps_repository.on_blocked_maps += self._send_blocked_maps
+
+        self._active_modes_repository = ActiveModesRepository()
+        self._active_modes_repository.on_active_modes += self._send_active_modes
+
+    def start(self):
+        self._played_maps_listener.start()
+        self._blocked_maps_repository.start()
+        self._active_modes_repository.start()
+
+    def stop(self):
+        self._played_maps_listener.stop()
+        self._blocked_maps_repository.stop()
+        self._active_modes_repository.stop()
 
     @async_task
     def on_connect(self, stream):
-        # type: (MessageStream) -> ...
-        if self._blocked_maps is not None:
-            message = json.dumps({
-                "type": "BlockedMaps",
-                "maps": self._blocked_maps
-            })
-            yield stream.send_message(message)
-
-        previous, self._stream = self._stream, stream
-        if previous:
-            yield previous.close(code=4000, reason="ConnectionSuperseded")
-
-    def on_disconnect(self, stream):
-        # type: (MessageStream) -> ...
-        if stream == self._stream:
-            self._stream = None
-
-    @async_task
-    @dependency.replace_none_kwargs(lobby_context=ILobbyContext)
-    def on_state_update(self, diff, lobby_context=None):
-        blocked_maps_update = diff.get("preferredMaps", {}).get("blackList")
-        if blocked_maps_update is None:
-            return
-
-        config = lobby_context.getServerSettings().getPreferredMapsConfig()
-        cooldown = config["slotCooldown"]
-
-        self._blocked_maps = [
-            {
-                "map": g_geometryCache[map_id].geometryName,
-                "blocked_until": blocked_at + cooldown
-            }
-            for (map_id, blocked_at) in blocked_maps_update
-            if map_id != 0
-        ]
-
-        message = json.dumps({
-            "type": "BlockedMaps",
-            "maps": self._blocked_maps
-        })
-
-        if self._stream is not None:
-            yield self._stream.send_message(message)
-
-    @async_task
-    @dependency.replace_none_kwargs(connection_manager=IConnectionManager)
-    def on_arena_load(self, connection_manager=None):
-        arena = BigWorld.player().arena
-
-        if arena.bonusType != ARENA_BONUS_TYPE.REGULAR:
-            return
-
-        yield await_event(arena.onNewVehicleListReceived)
-
-        tiers = {
-            vehicle_info["vehicleType"].level
-            for vehicle_info in arena.vehicles.values()
-        }
-
-        message = json.dumps({
-            "type": "PlayedMap",
-            "server": connection_manager.serverUserNameShort,
-            "map": arena.arenaType.geometryName,
-            "mode": arena.arenaType.gameplayName,
-            "bottom_tier": min(tiers),
-            "top_tier": max(tiers),
-        })
-
-        if self._stream is not None:
-            yield self._stream.send_message(message)
-
-
-def create_protocol(listener):
-    # type: (Listener) -> ...
-
-    @websocket_protocol(allowed_origins=ORIGIN_WHITELIST)
-    @async_task
-    def protocol(server, stream):
-        # type: (Server, MessageStream) -> ...
         try:
-            yield listener.on_connect(stream)
+            previous, self._stream = self._stream, stream
+            if previous:
+                yield previous.close(code=4000, reason="ConnectionSuperseded")
+
+            if self._blocked_maps_repository.blocked_maps:
+                yield self._send_blocked_maps(self._blocked_maps_repository.blocked_maps)
+
+            if self._active_modes_repository.active_modes:
+                yield self._send_active_modes(self._active_modes_repository.active_modes)
+
             while True:
                 # ignore all messages
                 yield stream.receive_message()
         finally:
-            listener.on_disconnect(stream)
+            if stream == self._stream:
+                self._stream = None
 
-    return protocol
+    @async_task
+    def _send_played_map(self, played_map):
+        message = {"type": "PlayedMap"}
+        message.update(played_map)
+        yield self._send_message(message)
+
+    @async_task
+    def _send_blocked_maps(self, blocked_maps):
+        message = {"type": "BlockedMaps", "maps": blocked_maps}
+        yield self._send_message(message)
+
+    @async_task
+    def _send_active_modes(self, active_modes):
+        message = {"type": "ActiveModes", "modes": active_modes}
+        yield self._send_message(message)
+
+    @async_task
+    def _send_message(self, message):
+        if self._stream:
+            yield self._stream.send_message(json.dumps(message))
 
 
 class MapRotationServer(object):
     def __init__(self):
-        self._listener = Listener()
-        protocol = create_protocol(self._listener)
+        self._protocol = Protocol()
+
+        @websocket_protocol(allowed_origins=ORIGIN_WHITELIST)
+        @async_task
+        def protocol(_server, stream):
+            yield self._protocol.on_connect(stream)
+
         self._server = Server(protocol, PORT)
 
     @async_task
     def serve(self):
         LOG_NOTE("Listening on port {}".format(PORT))
-
-        g_playerEvents.onAvatarBecomePlayer += self._on_avatar_become_player
-        g_playerEvents.onClientUpdated += self._on_client_updated
+        self._protocol.start()
 
         try:
             with self._server as server:
@@ -140,18 +106,11 @@ class MapRotationServer(object):
         except CallbackCancelled:
             pass
         finally:
-            g_playerEvents.onAvatarBecomePlayer -= self._on_avatar_become_player
-            g_playerEvents.onClientUpdated -= self._on_client_updated
+            self._protocol.stop()
             LOG_NOTE("Stopped server")
 
     def close(self):
         self._server.close()
-
-    def _on_avatar_become_player(self, *args, **kwargs):
-        self._listener.on_arena_load()
-
-    def _on_client_updated(self, diff, *args, **kwargs):
-        self._listener.on_state_update(diff)
 
 
 g_map_rotation_server = MapRotationServer()
