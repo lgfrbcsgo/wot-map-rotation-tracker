@@ -2,9 +2,9 @@ import json
 import re
 from typing import Optional
 
-from debug_utils import LOG_NOTE
 from mod_async import CallbackCancelled, async_task, delay
 from mod_async_server import Server
+from mod_logging import LOG_NOTE
 from mod_map_rotation_tracker.active_modes_repository import ActiveModesRepository
 from mod_map_rotation_tracker.blocked_maps_repository import BlockedMapsRepository
 from mod_map_rotation_tracker.played_maps_listener import PlayedMapsListener

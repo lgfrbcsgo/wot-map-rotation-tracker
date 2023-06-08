@@ -2,6 +2,7 @@ from ArenaType import g_geometryCache
 from Event import Event
 from PlayerEvents import g_playerEvents
 from helpers import dependency
+from mod_map_rotation_tracker.util import safe_callback
 from skeletons.gui.lobby_context import ILobbyContext
 
 
@@ -18,6 +19,7 @@ class BlockedMapsRepository(object):
     def stop(self):
         g_playerEvents.onClientUpdated -= self._on_client_update
 
+    @safe_callback
     def _on_client_update(self, diff, _):
         blocked_maps_update = diff.get("preferredMaps", {}).get("blackList")
         if blocked_maps_update is None:

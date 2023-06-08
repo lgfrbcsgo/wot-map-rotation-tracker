@@ -5,6 +5,7 @@ from PlayerEvents import g_playerEvents
 from constants import ARENA_BONUS_TYPE
 from helpers import dependency
 from mod_async import async_task, await_event
+from mod_map_rotation_tracker.util import safe_callback
 from skeletons.connection_mgr import IConnectionManager
 
 
@@ -20,6 +21,7 @@ class PlayedMapsListener(object):
     def stop(self):
         g_playerEvents.onAvatarBecomePlayer -= self._on_avatar_become_player
 
+    @safe_callback
     @async_task
     def _on_avatar_become_player(self):
         arena = BigWorld.player().arena

@@ -1,6 +1,7 @@
 from Event import Event
 from constants import ARENA_GAMEPLAY_IDS
 from helpers import dependency
+from mod_map_rotation_tracker.util import safe_callback
 from skeletons.account_helpers.settings_core import ISettingsCore
 
 
@@ -17,6 +18,7 @@ class ActiveModesRepository(object):
     def stop(self):
         self.settings_core.onSettingsChanged -= self._on_settings_changed
 
+    @safe_callback
     def _on_settings_changed(self, diff):
         gameplay_mask_update = diff.get("gameplayMask")
         if gameplay_mask_update is None:
