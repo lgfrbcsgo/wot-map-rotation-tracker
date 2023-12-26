@@ -47,6 +47,8 @@ class Protocol(object):
             if previous:
                 yield previous.close(code=4000, reason="ConnectionSuperseded")
 
+            yield self._send_version()
+
             if self._blocked_maps_repository.blocked_maps:
                 yield self._send_blocked_maps(self._blocked_maps_repository.blocked_maps)
 
@@ -59,6 +61,11 @@ class Protocol(object):
         finally:
             if stream == self._stream:
                 self._stream = None
+
+    @async_task
+    def _send_version(self):
+        message = {"type": "Version", "version": "{{ VERSION }}"}
+        yield self._send_message(message)
 
     @async_task
     def _send_played_map(self, played_map):

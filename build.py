@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import glob
 from os import path
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
@@ -35,6 +36,11 @@ def wotmod():
 
     # copy sources
     subprocess.check_call(["cp", "-r", "src/.", source_dst])
+
+    # replace version
+    for filepath in glob.glob(path.join(source_dst, "**/*.py")):
+        replace_arg = "s/{{{{ VERSION }}}}/{version}/g".format(version=get_version())
+        subprocess.check_call(["sed", "-i", replace_arg, filepath])
 
     # compile sources
     subprocess.check_call(["python2.7", "-m", "compileall", internal_path], cwd=res_path)
